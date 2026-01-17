@@ -1,65 +1,186 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+
+// --- ICONS ---
+const InfoIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const LinkIcon = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>;
+
+interface Project {
+  id: number;
+  title: string;
+  description: string;
+  slug: string;
+  type: 'static' | 'external';
+  project_url: string;
+  tech_stack: string;
+}
+
+export default function PortfolioOS() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showInfo, setShowInfo] = useState(false); // For the "About" modal
+
+  // 1. Fetch Projects on Load
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const res = await fetch("/api/projects");
+        const data = await res.json();
+        setProjects(data);
+        // Automatically select first project
+        if (data.length > 0) setActiveProject(data[0]);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error loading system");
+      }
+    }
+    fetchProjects();
+  }, []);
+
+  // 2. Helper for URL logic
+  const getProjectUrl = (project: Project) => {
+    if (project.type === 'static') {
+      return `/projects/${project.project_url}/index.html`;
+    }
+    return project.project_url;
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex h-screen bg-neutral-950 text-white overflow-hidden font-sans selection:bg-emerald-500/30">
+      
+      {/* --- SIDEBAR --- */}
+      <div className="w-80 flex flex-col border-r border-neutral-800 bg-neutral-900/50 backdrop-blur-sm z-20 shadow-2xl">
+        
+        {/* Brand Header */}
+        <div className="p-6 border-b border-neutral-800 bg-neutral-950/80">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-red-500" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500" />
+            <div className="w-3 h-3 rounded-full bg-green-500" />
+          </div>
+          <h1 className="mt-4 text-xl font-bold tracking-widest text-emerald-400">DEV_OS</h1>
+          <p className="text-xs text-neutral-500 font-mono">v2.0 • System Ready</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Project List */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-neutral-700">
+          {loading ? (
+            <div className="text-neutral-500 text-sm animate-pulse px-2">Scanning registry...</div>
+          ) : (
+            projects.map((proj) => (
+              <button
+                key={proj.id}
+                onClick={() => setActiveProject(proj)}
+                className={`group w-full text-left p-4 rounded-xl border transition-all duration-300 ${
+                  activeProject?.id === proj.id 
+                    ? "bg-gradient-to-r from-emerald-900/40 to-transparent border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]" 
+                    : "bg-transparent border-transparent hover:bg-neutral-800"
+                }`}
+              >
+                <div className={`font-semibold text-sm ${activeProject?.id === proj.id ? 'text-white' : 'text-neutral-400 group-hover:text-white'}`}>
+                  {proj.title}
+                </div>
+                
+                {/* Tech Pills */}
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {proj.tech_stack.split(',').slice(0, 3).map((tech, i) => (
+                    <span key={i} className="text-[10px] bg-neutral-950 text-neutral-500 px-1.5 py-0.5 rounded border border-neutral-800">
+                      {tech.trim()}
+                    </span>
+                  ))}
+                </div>
+              </button>
+            ))
+          )}
         </div>
-      </main>
+
+        {/* System Info Button */}
+        <div className="p-4 border-t border-neutral-800 bg-neutral-950">
+          <button 
+            onClick={() => setShowInfo(true)}
+            className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 py-3 rounded-lg text-sm transition"
+          >
+            <InfoIcon /> System Properties
+          </button>
+        </div>
+      </div>
+
+      {/* --- MAIN VIEWER --- */}
+      <div className="flex-1 flex flex-col h-full relative bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-neutral-900">
+        
+        {activeProject ? (
+          <>
+            {/* Toolbar */}
+            <div className="h-14 bg-neutral-950 border-b border-neutral-800 flex items-center justify-between px-6 shadow-sm z-10">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-white tracking-wide">{activeProject.title}</span>
+                <span className="text-[10px] text-emerald-500 font-mono">Running at: ./{activeProject.slug}</span>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                 <span className="text-xs text-neutral-500 hidden sm:block">{activeProject.description}</span>
+                 <div className="h-4 w-px bg-neutral-800 mx-2"></div>
+                 <a 
+                   href={getProjectUrl(activeProject)} 
+                   target="_blank" 
+                   rel="noreferrer"
+                   className="flex items-center gap-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-full transition shadow-lg shadow-emerald-900/20"
+                 >
+                   Open External <LinkIcon />
+                 </a>
+              </div>
+            </div>
+
+            {/* IFRAME CONTAINER */}
+            <div className="flex-1 w-full h-full relative bg-white">
+              <iframe
+                src={getProjectUrl(activeProject)}
+                className="w-full h-full border-none"
+                title="Project Viewer"
+              />
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-neutral-600">
+            <p>Select a module to initialize...</p>
+          </div>
+        )}
+
+        {/* --- SYSTEM INFO MODAL (About) --- */}
+        {showInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-neutral-900 border border-neutral-700 w-full max-w-lg rounded-2xl shadow-2xl p-8 relative">
+              <button onClick={() => setShowInfo(false)} className="absolute top-4 right-4 text-neutral-500 hover:text-white">✕</button>
+              
+              <h2 className="text-2xl font-bold text-white mb-2">Portfolio OS <span className="text-emerald-500">v2.0</span></h2>
+              <p className="text-neutral-400 text-sm mb-6">Designed & Developed by [Your Name]</p>
+              
+              <div className="space-y-4 text-sm text-neutral-300">
+                <p>
+                  <strong className="text-white">Architecture:</strong> This system acts as a central repository for my lifetime development work. Unlike a standard resume, this OS allows live interaction with deployed builds.
+                </p>
+                <div className="bg-neutral-800 p-4 rounded-lg border border-neutral-700">
+                  <h3 className="text-white font-bold mb-2">Core Capabilities:</h3>
+                  <ul className="list-disc pl-5 space-y-1 text-neutral-400">
+                    <li>Real-time Project Rendering</li>
+                    <li>Full Stack Architecture (Next.js + MySQL)</li>
+                    <li>Unified Admin Command Center</li>
+                    <li>Portable Deployment Ready</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-neutral-800 flex justify-end">
+                <button onClick={() => setShowInfo(false)} className="bg-white text-black px-6 py-2 rounded-lg font-bold hover:bg-neutral-200 transition">
+                  Close System Info
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
