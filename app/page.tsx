@@ -8,6 +8,7 @@ const Icons = {
   External: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>,
   Folder: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>,
   Code: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>,
+  Profile: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
 };
 
 interface Project {
@@ -31,8 +32,11 @@ export default function PortfolioOS() {
         const res = await fetch("/api/projects");
         const data = await res.json();
         if (Array.isArray(data)) setProjects(data);
-      } catch (e) { console.error(e); } 
-      finally { setLoading(false); }
+      } catch (e) { 
+        console.error("Connection Error", e); 
+      } finally { 
+        setLoading(false); 
+      }
     }
     fetchProjects();
   }, []);
@@ -42,93 +46,111 @@ export default function PortfolioOS() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-zinc-100 font-sans overflow-hidden selection:bg-indigo-500/30">
+    <div className="flex h-screen bg-[#050505] text-zinc-100 font-sans overflow-hidden selection:bg-indigo-500/30">
       
       {/* --- SIDEBAR: Glass & Minimal --- */}
-      <div className="w-72 flex flex-col border-r border-white/5 bg-black/40 backdrop-blur-xl z-20">
+      <div className="w-80 flex flex-col border-r border-white/5 bg-[#0a0a0a]/80 backdrop-blur-2xl z-20 shadow-2xl">
         
-        {/* Profile / Header */}
+        {/* Header */}
         <div className="p-6 border-b border-white/5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold shadow-lg shadow-indigo-500/20">
-              ME
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white">
+              <Icons.Code />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white tracking-wide">Mustafa Ch.</h1>
-              <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Full Stack Developer</p>
+              <h1 className="text-sm font-bold text-white tracking-wide">Developer OS</h1>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Portfolio v3.0</p>
             </div>
           </div>
+          
           <button 
             onClick={() => setActiveProject(null)}
-            className="w-full flex items-center gap-2 bg-white/5 hover:bg-white/10 text-xs font-medium px-3 py-2 rounded-lg transition-all border border-white/5 hover:border-white/10"
+            className="w-full flex items-center gap-3 bg-white/5 hover:bg-white/10 text-xs font-medium px-4 py-3 rounded-xl transition-all border border-white/5 hover:border-white/10 text-zinc-300 hover:text-white"
           >
-            <Icons.Home /> Return to Overview
+            <Icons.Home /> Dashboard Overview
           </button>
         </div>
 
-        {/* Project Navigation */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          <div className="px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Projects</div>
+        {/* Project List */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-thin scrollbar-thumb-white/10">
+          <div className="px-2 pb-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Deployed Modules</div>
           
           {loading ? (
-            <div className="px-3 text-xs text-zinc-600">Loading...</div>
+            <div className="px-4 py-2 text-xs text-zinc-600 animate-pulse">Syncing registry...</div>
           ) : (
             projects.map((proj) => (
               <button
                 key={proj.id}
                 onClick={() => setActiveProject(proj)}
-                className={`w-full text-left px-3 py-3 rounded-lg text-sm transition-all duration-200 border flex flex-col gap-1 group ${
+                className={`group w-full text-left px-4 py-3 rounded-xl text-sm transition-all duration-300 border flex flex-col gap-1.5 relative overflow-hidden ${
                   activeProject?.id === proj.id 
-                    ? "bg-gradient-to-r from-indigo-500/10 to-transparent border-indigo-500/20 text-indigo-200" 
-                    : "bg-transparent border-transparent hover:bg-white/5 text-zinc-400 hover:text-white"
+                    ? "bg-indigo-600/10 border-indigo-500/30 text-indigo-100" 
+                    : "bg-transparent border-transparent hover:bg-white/5 text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                <div className="flex items-center gap-2 font-medium">
+                {/* Active Indicator Line */}
+                {activeProject?.id === proj.id && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500" />
+                )}
+
+                <div className="flex items-center gap-2 font-semibold">
                    {proj.type === 'static' ? <Icons.Folder /> : <Icons.External />}
                    {proj.title}
                 </div>
-                <div className="text-[10px] opacity-60 pl-6 group-hover:opacity-100 transition-opacity">
-                  {proj.tech_stack.split(',')[0]}
+                
+                <div className="flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity pl-6">
+                  {proj.tech_stack.split(',').slice(0, 2).map((tech, i) => (
+                    <span key={i} className="text-[9px] uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                      {tech.trim()}
+                    </span>
+                  ))}
                 </div>
               </button>
             ))
           )}
         </div>
         
-        <div className="p-4 border-t border-white/5 text-[10px] text-zinc-600 text-center">
-          Portfolio OS v3.0 • <a href="/admin" className="hover:text-zinc-400 transition">Admin</a>
+        {/* Footer */}
+        <div className="p-4 border-t border-white/5 bg-black/20">
+            <a href="/admin" className="flex items-center justify-center gap-2 text-[10px] text-zinc-600 hover:text-indigo-400 transition uppercase tracking-widest font-bold py-2">
+                <Icons.Profile /> Admin Login
+            </a>
         </div>
       </div>
 
       {/* --- MAIN STAGE --- */}
-      <div className="flex-1 flex flex-col relative bg-gradient-to-br from-[#0a0a0a] to-[#111] overflow-hidden">
+      <div className="flex-1 flex flex-col relative bg-[#050505]">
         
-        {/* Background Ambient Glow */}
-        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
+        {/* Ambient Glow Effects */}
+        <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-indigo-600/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-purple-600/5 rounded-full blur-[100px] pointer-events-none" />
 
         {activeProject ? (
           <>
-            {/* Toolbar */}
-            <div className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-black/20 backdrop-blur-md z-10">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-white">{activeProject.title}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/5">
-                  {activeProject.type === 'static' ? 'Local Build' : 'Live URL'}
+            {/* Project Toolbar */}
+            <div className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-[#0a0a0a]/50 backdrop-blur-xl z-10">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-white tracking-wide">{activeProject.title}</span>
+                <span className="text-[10px] text-indigo-400 font-mono flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                  Running at: {activeProject.slug}
                 </span>
               </div>
-              <a 
-                href={getProjectUrl(activeProject)} 
-                target="_blank" 
-                rel="noreferrer"
-                className="flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-white transition"
-              >
-                Open Fullscreen <Icons.External />
-              </a>
+              
+              <div className="flex gap-3">
+                 <a 
+                   href={getProjectUrl(activeProject)} 
+                   target="_blank" 
+                   rel="noreferrer"
+                   className="flex items-center gap-2 text-xs font-bold bg-white text-black px-4 py-2 rounded-lg hover:bg-zinc-200 transition"
+                 >
+                   Open Fullscreen <Icons.External />
+                 </a>
+              </div>
             </div>
 
-            {/* Viewer */}
-            <div className="flex-1 relative bg-white/95 rounded-tl-2xl overflow-hidden shadow-2xl border-l border-t border-white/10 ml-0 mt-0">
+            {/* Iframe Viewer */}
+            <div className="flex-1 relative bg-white w-full h-full">
                <iframe
                 src={getProjectUrl(activeProject)}
                 className="w-full h-full border-none"
@@ -137,41 +159,31 @@ export default function PortfolioOS() {
             </div>
           </>
         ) : (
-          /* --- HERO / LANDING STATE (When no project is selected) --- */
+          /* --- DASHBOARD HOME STATE --- */
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center z-10">
-            <div className="max-w-2xl space-y-8">
-              <div className="inline-block p-1 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 mb-6">
-                <div className="bg-[#0a0a0a] rounded-full px-4 py-1.5">
-                  <span className="text-xs font-medium text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
-                    Available for hire
-                  </span>
-                </div>
+            <div className="max-w-3xl space-y-8 animate-in fade-in zoom-in duration-500">
+              
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-4">
+                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                System Online
               </div>
               
-              <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight">
-                Crafting <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Digital</span> Experiences.
+              <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none">
+                BUILD.<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">SHIP.</span>
+                SCALE.
               </h1>
               
-              <p className="text-lg text-zinc-400 leading-relaxed max-w-lg mx-auto">
-                Welcome to my interactive portfolio. Select a project from the sidebar to launch a live preview of my development journey.
+              <p className="text-lg text-zinc-400 max-w-lg mx-auto leading-relaxed">
+                An interactive archive of my development journey. Select a module from the sidebar to inspect the live build.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-8">
-                 <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm">
-                    <div className="text-indigo-400 mb-2"><Icons.Code /></div>
-                    <div className="font-bold text-white">Clean Code</div>
-                    <div className="text-xs text-zinc-500 mt-1">Modern practices & type safety.</div>
-                 </div>
-                 <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm">
-                    <div className="text-purple-400 mb-2"><Icons.Folder /></div>
-                    <div className="font-bold text-white">Full Stack</div>
-                    <div className="text-xs text-zinc-500 mt-1">Next.js, Node, SQL & More.</div>
-                 </div>
-                 <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm">
-                    <div className="text-pink-400 mb-2"><Icons.Home /></div>
-                    <div className="font-bold text-white">UI/UX Design</div>
-                    <div className="text-xs text-zinc-500 mt-1">Immersive & responsive layouts.</div>
-                 </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-10">
+                 {['Frontend Architecture', 'Backend Systems', 'UI/UX Engineering'].map((item, i) => (
+                    <div key={i} className="p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm hover:bg-white/10 transition cursor-default">
+                        <div className="font-bold text-zinc-200">{item}</div>
+                    </div>
+                 ))}
               </div>
             </div>
           </div>
