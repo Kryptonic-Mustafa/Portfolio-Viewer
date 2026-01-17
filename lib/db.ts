@@ -1,17 +1,19 @@
 import mysql from 'serverless-mysql';
 
-// Initialize the pool
 const db = mysql({
   config: {
     host: process.env.MYSQL_HOST,
     port: parseInt(process.env.MYSQL_PORT || '3306'),
     database: process.env.MYSQL_DATABASE,
     user: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD
+    password: process.env.MYSQL_PASSWORD,
+    // 👇 THIS IS THE MISSING PART CAUSING THE ERROR
+    ssl: {
+      rejectUnauthorized: true
+    }
   }
 });
 
-// Helper function to run queries
 export default async function executeQuery({ query, values }: { query: string; values?: any[] }) {
   try {
     const results = await db.query(query, values);
@@ -19,6 +21,7 @@ export default async function executeQuery({ query, values }: { query: string; v
     return results;
   } catch (error) {
     console.error("Database Error:", error);
-    return { error };
+    // Rethrow error so the API knows it failed
+    throw error;
   }
 }
