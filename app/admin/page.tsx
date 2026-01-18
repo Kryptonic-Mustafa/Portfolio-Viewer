@@ -1,19 +1,21 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import Swal from 'sweetalert2';
 
-// --- ICONS ---
+// Icons
 const TrashIcon = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
+const CloudIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>;
 
 export default function AdminDashboard() {
-  // --- 👇 THE FIX IS HERE (Added <any[]>) ---
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deploying, setDeploying] = useState(false);
   
-  const [formData, setFormData] = useState({
-    title: "", description: "", slug: "", type: "static", project_url: "", tech_stack: "",
+  // Auto-Deploy State
+  const [deployData, setDeployData] = useState({
+    title: "", slug: "", tech_stack: "", description: ""
   });
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
   useEffect(() => { fetchProjects(); }, []);
 
@@ -27,56 +29,53 @@ export default function AdminDashboard() {
   }
 
   async function handleDelete(id: number) {
-    const result = await Swal.fire({
-      title: 'Delete Project?',
-      text: "This action cannot be undone.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Delete',
-      background: '#18181b',
-      color: '#fff'
-    });
-
-    if (result.isConfirmed) {
-      await fetch(`/api/projects?id=${id}`, { method: 'DELETE' });
-      fetchProjects();
-      Swal.fire({
-        title: 'Deleted!',
-        icon: 'success',
-        background: '#18181b',
-        color: '#fff',
-        timer: 1500,
-        showConfirmButton: false
-      });
-    }
+    if(!confirm("Delete this project?")) return;
+    await fetch(`/api/projects?id=${id}`, { method: 'DELETE' });
+    fetchProjects();
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  // --- AUTO DEPLOY HANDLER ---
+  async function handleAutoDeploy(e: React.FormEvent) {
     e.preventDefault();
-    if (!formData.title || !formData.slug) return Swal.fire({ icon: 'error', title: 'Oops...', text: 'Title and Slug are required!', background: '#18181b', color: '#fff' });
+    if (!deployData.title || !deployData.slug || !selectedFiles) {
+        return Swal.fire({ icon: 'warning', title: 'Missing Info', text: 'Please fill all fields and select files.', background: '#18181b', color: '#fff'});
+    }
 
-    const res = await fetch("/api/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+    setDeploying(true);
+    
+    const formData = new FormData();
+    formData.append('title', deployData.title);
+    formData.append('slug', deployData.slug);
+    formData.append('tech_stack', deployData.tech_stack);
+    formData.append('description', deployData.description);
+    
+    // Add all files
+    for (let i = 0; i < selectedFiles.length; i++) {
+        formData.append('files', selectedFiles[i]);
+    }
 
-    if (res.ok) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Success',
-        text: 'Project registered successfully.',
-        background: '#18181b',
-        color: '#fff',
-        timer: 1500,
-        showConfirmButton: false
-      });
-      setFormData({ title: "", description: "", slug: "", type: "static", project_url: "", tech_stack: "" });
-      fetchProjects();
-    } else {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Database connection failed.', background: '#18181b', color: '#fff' });
+    try {
+        const res = await fetch("/api/deploy", { method: "POST", body: formData });
+        const result = await res.json();
+
+        if (res.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Deployment Started!',
+                text: 'Your files are uploading to GitHub. Vercel will rebuild the site in ~60 seconds.',
+                background: '#18181b', color: '#fff'
+            });
+            setDeployData({ title: "", slug: "", tech_stack: "", description: "" });
+            setSelectedFiles(null);
+            // Refresh list immediately (it will show in DB, but files take 1 min to appear on site)
+            fetchProjects();
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error: any) {
+        Swal.fire({ icon: 'error', title: 'Deploy Failed', text: error.message, background: '#18181b', color: '#fff' });
+    } finally {
+        setDeploying(false);
     }
   }
 
@@ -87,83 +86,75 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* --- LEFT: COMPACT FORM --- */}
+          {/* --- LEFT: AUTO DEPLOYER --- */}
           <div className="lg:col-span-1">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sticky top-8 shadow-xl">
-              <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-4">Register Module</h2>
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <input type="text" placeholder="Title" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm focus:border-indigo-500 outline-none transition" 
-                  value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+            <div className="bg-gradient-to-b from-indigo-900/20 to-zinc-900 border border-indigo-500/30 rounded-2xl p-6 sticky top-8 shadow-xl">
+              <h2 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <CloudIcon /> Auto-Deployer
+              </h2>
+              <form onSubmit={handleAutoDeploy} className="space-y-3">
+                <input type="text" placeholder="Project Title" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm focus:border-indigo-500 outline-none" 
+                  value={deployData.title} onChange={(e) => setDeployData({...deployData, title: e.target.value})} />
                 
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="text" placeholder="Slug" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm focus:border-indigo-500 outline-none transition" 
-                    value={formData.slug} onChange={(e) => setFormData({...formData, slug: e.target.value})} />
-                  <select className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-400 outline-none transition"
-                    value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})}>
-                    <option value="static">Static</option>
-                    <option value="external">External</option>
-                  </select>
+                <input type="text" placeholder="Slug (Folder Name)" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm focus:border-indigo-500 outline-none" 
+                  value={deployData.slug} onChange={(e) => setDeployData({...deployData, slug: e.target.value})} />
+                
+                <input type="text" placeholder="Tech Stack" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm focus:border-indigo-500 outline-none" 
+                  value={deployData.tech_stack} onChange={(e) => setDeployData({...deployData, tech_stack: e.target.value})} />
+                
+                 {/* FILE UPLOAD INPUT */}
+                <div className="border-2 border-dashed border-zinc-700 rounded-lg p-4 text-center hover:border-indigo-500 transition cursor-pointer relative">
+                    <p className="text-xs text-zinc-500 mb-1">Drag index.html & style.css here</p>
+                    <input 
+                        type="file" 
+                        multiple 
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={(e) => setSelectedFiles(e.target.files)}
+                    />
+                    {selectedFiles && <p className="text-xs text-indigo-400 font-bold">{selectedFiles.length} files selected</p>}
                 </div>
 
-                <input type="text" placeholder="Folder Name / URL" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm focus:border-indigo-500 outline-none font-mono transition" 
-                  value={formData.project_url} onChange={(e) => setFormData({...formData, project_url: e.target.value})} />
-                
-                <input type="text" placeholder="Tech Stack (e.g. React, Next)" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm focus:border-indigo-500 outline-none transition" 
-                  value={formData.tech_stack} onChange={(e) => setFormData({...formData, tech_stack: e.target.value})} />
-                
-                <textarea placeholder="Description" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm focus:border-indigo-500 outline-none h-24 transition"
-                  value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
-
-                <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-indigo-900/20">
-                  Deploy
+                <button 
+                    type="submit" 
+                    disabled={deploying}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-indigo-900/20 flex justify-center"
+                >
+                  {deploying ? "Uploading..." : "🚀 Launch to Cloud"}
                 </button>
               </form>
+              <p className="text-[10px] text-zinc-600 mt-4 text-center">
+                * Uploads files to GitHub & Triggers Vercel.
+              </p>
             </div>
           </div>
 
-          {/* --- RIGHT: COMPACT TABLE LIST --- */}
+          {/* --- RIGHT: LIVE REGISTRY --- */}
           <div className="lg:col-span-2">
              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
-              <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-                 <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Live Registry</h2>
-                 <span className="text-xs bg-zinc-800 px-2 py-1 rounded text-zinc-400 font-mono">{projects.length} ITEMS</span>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-zinc-400">
-                  <thead className="bg-zinc-950 uppercase text-[10px] font-bold text-zinc-500 tracking-wider">
-                    <tr>
-                      <th className="p-4">Module</th>
-                      <th className="p-4">Tech</th>
-                      <th className="p-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800">
-                    {loading ? <tr><td className="p-4">Loading...</td></tr> : projects.map((proj: any) => (
-                      <tr key={proj.id} className="hover:bg-zinc-800/50 transition group">
-                        <td className="p-4">
-                          <div className="font-bold text-white flex items-center gap-2">
-                             {proj.title}
-                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide border ${proj.type === 'static' ? 'bg-indigo-900/20 text-indigo-400 border-indigo-500/20' : 'bg-pink-900/20 text-pink-400 border-pink-500/20'}`}>
-                               {proj.type}
-                             </span>
-                          </div>
-                          <div className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate max-w-[200px]">{proj.project_url}</div>
-                        </td>
-                        <td className="p-4 truncate max-w-[120px] text-xs">
-                           {proj.tech_stack}
-                        </td>
-                        <td className="p-4 text-right">
-                          <button onClick={() => handleDelete(proj.id)} className="text-zinc-600 hover:text-red-400 transition p-2 hover:bg-zinc-800 rounded-md">
-                            <TrashIcon />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {projects.length === 0 && !loading && <div className="p-12 text-center text-zinc-600 text-sm">System Empty. Initialize a project.</div>}
-              </div>
+                 <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                    <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Live Registry</h2>
+                    <span className="text-xs bg-zinc-800 px-2 py-1 rounded text-zinc-400 font-mono">{projects.length} ITEMS</span>
+                 </div>
+                 <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-zinc-400">
+                        <thead className="bg-zinc-950 uppercase text-[10px] font-bold text-zinc-500 tracking-wider">
+                            <tr><th className="p-4">Module</th><th className="p-4 text-right">Actions</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800">
+                            {projects.map((proj:any) => (
+                                <tr key={proj.id} className="hover:bg-zinc-800/50">
+                                    <td className="p-4 font-bold text-white">
+                                        {proj.title}
+                                        <div className="text-[10px] text-zinc-600">/{proj.slug}</div>
+                                    </td>
+                                    <td className="p-4 text-right">
+                                        <button onClick={() => handleDelete(proj.id)} className="text-zinc-600 hover:text-red-400"><TrashIcon/></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                 </div>
              </div>
           </div>
 
