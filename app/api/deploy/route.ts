@@ -11,11 +11,11 @@ export async function POST(req: Request) {
     const slug = formData.get('slug') as string;
     const tech_stack = formData.get('tech_stack') as string;
     const description = formData.get('description') as string;
-    const entryPoint = formData.get('entry_point') as string; // NEW: The specific file to launch
+    const entryPoint = formData.get('entry_point') as string;
     
-    // Get files and their relative paths (sent as a JSON string map)
     const files = formData.getAll('files') as File[];
-    const pathsMap = JSON.parse(formData.get('paths') as string); 
+    // 👇 CHANGED: We now expect a simple Array of strings, not a Map
+    const paths = JSON.parse(formData.get('paths') as string); 
 
     if (!title || !slug || files.length === 0 || !entryPoint) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
@@ -25,25 +25,22 @@ export async function POST(req: Request) {
     const repo = process.env.GITHUB_REPO!;
     const branch = 'main'; 
 
-    // 1. Get Base Commit
     const { data: refData } = await octokit.git.getRef({ owner, repo, ref: `heads/${branch}` });
     const latestCommitSha = refData.object.sha;
 
-    // 2. Prepare GitHub Tree
     const treeArray = [];
-    for (const file of files) {
+    
+    // 👇 CHANGED: Loop using INDEX (i) to guarantee correct path matching
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const relativePath = paths[i]; // Guaranteed match by index
+
       const buffer = Buffer.from(await file.arrayBuffer());
       const content = buffer.toString('base64');
       
       const { data: blobData } = await octokit.git.createBlob({
         owner, repo, content, encoding: 'base64'
       });
-
-      // USE THE FULL RELATIVE PATH (e.g. "admin/css/style.css")
-      // We stored this in pathsMap using the file.name + size or index as key, 
-      // but simpler is to trust the index order if we match them carefully frontend side.
-      // BETTER STRATEGY: Frontend sends paths matching the file index.
-      const relativePath = pathsMap[file.name]; 
 
       const finalPath = `public/projects/${slug}/${relativePath}`; 
 
@@ -55,7 +52,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. Create Tree & Commit
     const { data: treeData } = await octokit.git.createTree({
       owner, repo, base_tree: latestCommitSha, tree: treeArray as any
     });
@@ -68,9 +64,6 @@ export async function POST(req: Request) {
       owner, repo, ref: `heads/${branch}`, sha: commitData.sha
     });
 
-    // 4. Save to Database (With correct Entry Point)
-    // The project_url will be "[slug]/[entry_point]"
-    // e.g. "my-app/admin/index.html"
     const dbUrl = `${slug}/${entryPoint}`;
 
     await executeQuery({

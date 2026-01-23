@@ -65,18 +65,16 @@ export default function AdminDashboard() {
     formData.append('tech_stack', deployData.tech_stack);
     formData.append('description', deployData.description);
     
-    // Crucial: Create a map of Filename -> Relative Path
-    // Because FormData flattens files, we need to send the paths separately
-    const pathsMap: Record<string, string> = {};
+    const paths: string[] = [];
     
     for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
         formData.append('files', file);
-        pathsMap[file.name] = file.webkitRelativePath; // Store "folder/sub/style.css"
+        paths.push(file.webkitRelativePath); // Just push to array
     }
 
-    formData.append('paths', JSON.stringify(pathsMap));
-    formData.append('entry_point', entryPoint); // e.g. "my-project/admin/index.html"
+    formData.append('paths', JSON.stringify(paths));
+    formData.append('entry_point', entryPoint);
 
     try {
         const res = await fetch("/api/deploy", { method: "POST", body: formData });
