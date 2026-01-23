@@ -10,8 +10,8 @@ const LinkIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" 
 export default function AdminDashboard() {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'upload' | 'link'>('upload'); // TABS STATE
-
+  const [activeTab, setActiveTab] = useState<'upload' | 'link'>('upload');
+  
   // Form States
   const [deploying, setDeploying] = useState(false);
   const [deployData, setDeployData] = useState({ title: "", slug: "", tech_stack: "", description: "" });
@@ -35,13 +35,11 @@ export default function AdminDashboard() {
     fetchProjects();
   }
 
-  // --- HANDLER 1: AUTO DEPLOY (STATIC FILES) ---
   async function handleAutoDeploy(e: React.FormEvent) {
     e.preventDefault();
     if (!deployData.title || !deployData.slug || !selectedFiles) {
-        return Swal.fire({ icon: 'warning', title: 'Missing Info', text: 'Please fill all fields and select files.', background: '#18181b', color: '#fff'});
+        return Swal.fire({ icon: 'warning', title: 'Missing Info', text: 'Please fill all fields.', background: '#18181b', color: '#fff'});
     }
-
     setDeploying(true);
     const formData = new FormData();
     formData.append('title', deployData.title);
@@ -54,7 +52,7 @@ export default function AdminDashboard() {
         const res = await fetch("/api/deploy", { method: "POST", body: formData });
         const result = await res.json();
         if (res.ok) {
-            Swal.fire({ icon: 'success', title: 'Deploying!', text: 'Files uploaded. Site rebuilding...', background: '#18181b', color: '#fff' });
+            Swal.fire({ icon: 'success', title: 'Deploying!', text: 'Site rebuilding...', background: '#18181b', color: '#fff' });
             setDeployData({ title: "", slug: "", tech_stack: "", description: "" });
             setSelectedFiles(null);
             fetchProjects();
@@ -64,7 +62,6 @@ export default function AdminDashboard() {
     } finally { setDeploying(false); }
   }
 
-  // --- HANDLER 2: MANUAL LINK (EXTERNAL APPS) ---
   async function handleManualLink(e: React.FormEvent) {
     e.preventDefault();
     if (!linkData.title || !linkData.url || !linkData.slug) return Swal.fire({ icon: 'warning', text: 'Missing required fields' });
@@ -85,22 +82,22 @@ export default function AdminDashboard() {
     });
 
     if (res.ok) {
-        Swal.fire({ icon: 'success', title: 'Linked!', text: 'External project added.', background: '#18181b', color: '#fff' });
+        Swal.fire({ icon: 'success', title: 'Linked!', text: 'Project added.', background: '#18181b', color: '#fff' });
         setLinkData({ title: "", url: "", slug: "", tech_stack: "", description: "" });
         fetchProjects();
     }
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-200 font-sans p-6 md:p-12">
+    <div className="min-h-screen bg-zinc-950 text-zinc-200 font-sans p-4 md:p-12">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-8 tracking-tight">Admin Console</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-6 md:mb-8 tracking-tight">Admin Console</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           
           {/* --- LEFT COLUMN: ACTION CENTER --- */}
           <div className="lg:col-span-1">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sticky top-8 shadow-xl">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-6 sticky top-8 shadow-xl">
               
               {/* TABS */}
               <div className="flex bg-zinc-950 p-1 rounded-lg mb-6 border border-zinc-800">
@@ -112,41 +109,37 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              {/* --- FORM A: UPLOAD --- */}
-              {activeTab === 'upload' && (
-                  <form onSubmit={handleAutoDeploy} className="space-y-3 animate-in fade-in slide-in-from-left-4">
+              {/* FORMS */}
+              {activeTab === 'upload' ? (
+                  <form onSubmit={handleAutoDeploy} className="space-y-3">
                     <div className="flex items-center gap-2 text-indigo-400 text-xs uppercase font-bold mb-2"><CloudIcon/> Auto-Deployer</div>
-                    <input type="text" placeholder="Title" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm outline-none focus:border-indigo-500" value={deployData.title} onChange={(e) => setDeployData({...deployData, title: e.target.value})} />
-                    <input type="text" placeholder="Slug (Folder Name)" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm outline-none focus:border-indigo-500" value={deployData.slug} onChange={(e) => setDeployData({...deployData, slug: e.target.value})} />
-                    <input type="text" placeholder="Tech Stack" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm outline-none focus:border-indigo-500" value={deployData.tech_stack} onChange={(e) => setDeployData({...deployData, tech_stack: e.target.value})} />
+                    <input type="text" placeholder="Title" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm outline-none focus:border-indigo-500" value={deployData.title} onChange={(e) => setDeployData({...deployData, title: e.target.value})} />
+                    <input type="text" placeholder="Slug (Folder Name)" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm outline-none focus:border-indigo-500" value={deployData.slug} onChange={(e) => setDeployData({...deployData, slug: e.target.value})} />
+                    <input type="text" placeholder="Tech Stack" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm outline-none focus:border-indigo-500" value={deployData.tech_stack} onChange={(e) => setDeployData({...deployData, tech_stack: e.target.value})} />
                     
                     <div className="border-2 border-dashed border-zinc-700 rounded-lg p-4 text-center hover:border-indigo-500 transition cursor-pointer relative">
-                        <p className="text-xs text-zinc-500">Drag HTML/CSS/JS files here</p>
+                        <p className="text-xs text-zinc-500">Drag files here</p>
                         <input type="file" multiple className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setSelectedFiles(e.target.files)} />
                         {selectedFiles && <p className="text-xs text-indigo-400 font-bold mt-1">{selectedFiles.length} files</p>}
                     </div>
-                    <button type="submit" disabled={deploying} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-indigo-900/20">
+                    <button type="submit" disabled={deploying} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg">
                       {deploying ? "Uploading..." : "🚀 Launch"}
                     </button>
                   </form>
-              )}
-
-              {/* --- FORM B: LINK EXTERNAL --- */}
-              {activeTab === 'link' && (
-                  <form onSubmit={handleManualLink} className="space-y-3 animate-in fade-in slide-in-from-right-4">
+              ) : (
+                  <form onSubmit={handleManualLink} className="space-y-3">
                     <div className="flex items-center gap-2 text-emerald-400 text-xs uppercase font-bold mb-2"><LinkIcon/> Link Project</div>
-                    <input type="text" placeholder="Title" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500" value={linkData.title} onChange={(e) => setLinkData({...linkData, title: e.target.value})} />
-                    <input type="text" placeholder="Live URL (https://...)" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500 font-mono" value={linkData.url} onChange={(e) => setLinkData({...linkData, url: e.target.value})} />
+                    <input type="text" placeholder="Title" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm outline-none focus:border-emerald-500" value={linkData.title} onChange={(e) => setLinkData({...linkData, title: e.target.value})} />
+                    <input type="text" placeholder="Live URL" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm outline-none focus:border-emerald-500 font-mono" value={linkData.url} onChange={(e) => setLinkData({...linkData, url: e.target.value})} />
                     <div className="grid grid-cols-2 gap-2">
-                        <input type="text" placeholder="Slug (ID)" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500" value={linkData.slug} onChange={(e) => setLinkData({...linkData, slug: e.target.value})} />
-                        <input type="text" placeholder="Tech" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500" value={linkData.tech_stack} onChange={(e) => setLinkData({...linkData, tech_stack: e.target.value})} />
+                        <input type="text" placeholder="Slug" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm outline-none focus:border-emerald-500" value={linkData.slug} onChange={(e) => setLinkData({...linkData, slug: e.target.value})} />
+                        <input type="text" placeholder="Tech" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm outline-none focus:border-emerald-500" value={linkData.tech_stack} onChange={(e) => setLinkData({...linkData, tech_stack: e.target.value})} />
                     </div>
-                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-emerald-900/20">
+                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg shadow-lg">
                       🔗 Link Project
                     </button>
                   </form>
               )}
-
             </div>
           </div>
 
@@ -154,11 +147,12 @@ export default function AdminDashboard() {
           <div className="lg:col-span-2">
              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
                  <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-                    <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Live Registry</h2>
+                    <h2 className="text-xs md:text-sm font-bold text-zinc-400 uppercase tracking-widest">Live Registry</h2>
                     <span className="text-xs bg-zinc-800 px-2 py-1 rounded text-zinc-400 font-mono">{projects.length} ITEMS</span>
                  </div>
+                 {/* This container ensures horizontal scrolling on mobile */}
                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-zinc-400">
+                    <table className="w-full text-left text-sm text-zinc-400 min-w-[500px]">
                         <thead className="bg-zinc-950 uppercase text-[10px] font-bold text-zinc-500 tracking-wider">
                             <tr><th className="p-4">Module</th><th className="p-4">Type</th><th className="p-4 text-right">Actions</th></tr>
                         </thead>
