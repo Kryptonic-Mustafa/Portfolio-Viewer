@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       owner, repo, ref: `heads/${branch}`, sha: commitData.sha
     });
 
-    // 2. Database Operation (THE FIX IS HERE 👇)
+    // 2. Database Operation (SMART UPDATE)
     const dbUrl = `${slug}/${entryPoint}`;
 
     await executeQuery({

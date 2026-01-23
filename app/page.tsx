@@ -34,12 +34,13 @@ export default function PortfolioOS() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
   
-  // New State for Caching & Loading
-  const [iframeKey, setIframeKey] = useState(0); // Forces re-render
+  // Realtime States
+  const [iframeKey, setIframeKey] = useState(0); 
   const [isProjectReady, setIsProjectReady] = useState(false);
   const [buildStatus, setBuildStatus] = useState(""); 
   const retryInterval = useRef<NodeJS.Timeout | null>(null);
 
+  // 1. Clock
   useEffect(() => {
     const timer = setInterval(() => {
         setCurrentTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
@@ -47,12 +48,14 @@ export default function PortfolioOS() {
     return () => clearInterval(timer);
   }, []);
 
+  // 2. Aggressive Auto-Refresh (Every 3 seconds)
   useEffect(() => {
     fetchProjects(); 
-    const interval = setInterval(() => fetchProjects(true), 5000);
+    const interval = setInterval(() => fetchProjects(true), 3000);
     return () => clearInterval(interval);
   }, []);
 
+  // 3. Self-Healing: Reset if active project is deleted
   useEffect(() => {
     if (activeProject && projects.length > 0) {
         const stillExists = projects.find(p => p.id === activeProject.id);
@@ -66,6 +69,7 @@ export default function PortfolioOS() {
       const res = await fetch("/api/projects");
       const data = await res.json();
       if (Array.isArray(data)) {
+        // Only update state if data changed to avoid re-renders
         setProjects(prev => JSON.stringify(prev) !== JSON.stringify(data) ? data : prev);
       }
     } catch (e) { console.error(e); } 
@@ -75,29 +79,28 @@ export default function PortfolioOS() {
     }
   }
 
-  // --- SMART URL GENERATOR (Adds Timestamp to break Cache) ---
   const getProjectUrl = (project: Project) => {
     let base = "";
     if (project.type === 'external') base = project.project_url;
     else if (project.project_url.includes('.html')) base = `/projects/${project.project_url}`;
     else base = `/projects/${project.project_url}/index.html`;
 
-    // ⚡ CACHE BUSTER: This forces the browser to load the NEW file
-    return `${base}?v=${iframeKey}`;
+    // CACHE BUSTER: Forces the browser to load the NEW file
+    return `${base}?t=${iframeKey}`; 
   };
 
   const handleProjectSelect = (proj: Project) => {
     if (retryInterval.current) clearInterval(retryInterval.current);
     
-    // Update the Key with current time -> Forces complete reload
+    // Update Key -> Forces Refresh
     setIframeKey(Date.now());
     setActiveProject(proj);
     setMobileMenuOpen(false);
     
     if (proj.type === 'static') {
         setIsProjectReady(false);
-        setBuildStatus("Checking Cloud Status...");
-        checkProjectAvailability(getProjectUrl(proj)); // Check URL with timestamp
+        setBuildStatus("Connecting to Cloud...");
+        checkProjectAvailability(getProjectUrl(proj)); 
     } else {
         setIsProjectReady(true);
     }
@@ -111,7 +114,7 @@ export default function PortfolioOS() {
               setBuildStatus("");
               if (retryInterval.current) clearInterval(retryInterval.current);
           } else {
-              setBuildStatus("Building... (This takes ~60s)");
+              setBuildStatus("Building... (Wait ~60s)");
               if (!retryInterval.current) {
                   retryInterval.current = setInterval(() => checkProjectAvailability(url), 2000);
               }
@@ -145,7 +148,7 @@ export default function PortfolioOS() {
             <div>
               <h1 className="text-sm font-bold text-white tracking-wide">Dev OS</h1>
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium flex items-center gap-1">
-                 v3.0 • {isRefreshing ? <span className="text-indigo-400 animate-pulse">Syncing...</span> : "Online"}
+                 v3.0 • {isRefreshing ? <span className="text-indigo-400 animate-pulse">Syncing...</span> : <span className="text-emerald-500">Live</span>}
               </p>
             </div>
           </div>
@@ -165,7 +168,7 @@ export default function PortfolioOS() {
           </div>
           
           {loading ? (
-            <div className="px-4 py-2 text-xs text-zinc-600 animate-pulse">Scanning registry...</div>
+            <div className="px-4 py-2 text-xs text-zinc-600 animate-pulse">Scanning...</div>
           ) : (
             projects.map((proj) => (
               <button
@@ -222,8 +225,8 @@ export default function PortfolioOS() {
                    <div className="absolute inset-0 bg-zinc-950 flex flex-col items-center justify-center z-50">
                        <div className="p-8 rounded-2xl bg-zinc-900 border border-zinc-800 text-center shadow-2xl max-w-sm">
                            <div className="mb-6 flex justify-center"><Icons.Spinner /></div>
-                           <h3 className="text-white font-bold text-xl mb-2">Deploying Update</h3>
-                           <p className="text-zinc-400 text-sm mb-4">Syncing latest version from cloud...</p>
+                           <h3 className="text-white font-bold text-xl mb-2">Syncing with Cloud</h3>
+                           <p className="text-zinc-400 text-sm mb-4">Fetching latest version from Vercel...</p>
                            <div className="text-xs text-indigo-400 font-mono bg-indigo-950/30 py-2 rounded animate-pulse">
                                {buildStatus}
                            </div>
@@ -231,11 +234,11 @@ export default function PortfolioOS() {
                    </div>
                 )}
                
-               {/* 2. IFRAME (Only loads when ready + has TIMESTAMP to break cache) */}
+               {/* 2. IFRAME (Smart Cache Busting) */}
                {isProjectReady && (
                    <iframe
-                    key={`${activeProject.id}-${iframeKey}`} // 👈 Forces complete destroy/rebuild
-                    src={getProjectUrl(activeProject)} // 👈 URL includes ?v=timestamp
+                    key={`${activeProject.id}-${iframeKey}`} // Force React Re-render
+                    src={getProjectUrl(activeProject)}       // New URL forces Browser Refresh
                     className="w-full h-full border-none"
                     title="Project Viewer"
                   />
@@ -243,7 +246,7 @@ export default function PortfolioOS() {
             </div>
           </>
         ) : (
-          /* SYSTEM DASHBOARD (Unchanged) */
+          /* SYSTEM DASHBOARD */
           <div className="flex-1 flex flex-col p-6 md:p-12 overflow-y-auto bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
             <div className="flex justify-between items-end mb-12">
                 <div>
