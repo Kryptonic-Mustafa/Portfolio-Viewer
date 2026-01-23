@@ -189,6 +189,7 @@ export default function PortfolioOS() {
             {/* Iframe */}
             <div className="flex-1 relative bg-white w-full h-full">
                <iframe
+               key={activeProject.id}
                 src={getProjectUrl(activeProject)}
                 className="w-full h-full border-none"
                 title="Project Viewer"
