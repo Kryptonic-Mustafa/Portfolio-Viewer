@@ -11,9 +11,13 @@ export async function POST(req: Request) {
     const slug = formData.get('slug') as string;
     const tech_stack = formData.get('tech_stack') as string;
     const description = formData.get('description') as string;
+    const entryPoint = formData.get('entry_point') as string; // NEW: The specific file to launch
+    
+    // Get files and their relative paths (sent as a JSON string map)
     const files = formData.getAll('files') as File[];
+    const pathsMap = JSON.parse(formData.get('paths') as string); 
 
-    if (!title || !slug || files.length === 0) {
+    if (!title || !slug || files.length === 0 || !entryPoint) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
@@ -21,11 +25,11 @@ export async function POST(req: Request) {
     const repo = process.env.GITHUB_REPO!;
     const branch = 'main'; 
 
-    // 1. Get the latest commit SHA to base our update on
+    // 1. Get Base Commit
     const { data: refData } = await octokit.git.getRef({ owner, repo, ref: `heads/${branch}` });
     const latestCommitSha = refData.object.sha;
 
-    // 2. Prepare files for GitHub
+    // 2. Prepare GitHub Tree
     const treeArray = [];
     for (const file of files) {
       const buffer = Buffer.from(await file.arrayBuffer());
@@ -35,36 +39,43 @@ export async function POST(req: Request) {
         owner, repo, content, encoding: 'base64'
       });
 
-      // Files will be saved to: public/projects/[slug]/[filename]
-      const path = `public/projects/${slug}/${file.name}`; 
+      // USE THE FULL RELATIVE PATH (e.g. "admin/css/style.css")
+      // We stored this in pathsMap using the file.name + size or index as key, 
+      // but simpler is to trust the index order if we match them carefully frontend side.
+      // BETTER STRATEGY: Frontend sends paths matching the file index.
+      const relativePath = pathsMap[file.name]; 
+
+      const finalPath = `public/projects/${slug}/${relativePath}`; 
 
       treeArray.push({
-        path,
+        path: finalPath,
         mode: '100644',
         type: 'blob',
         sha: blobData.sha,
       });
     }
 
-    // 3. Create Tree
+    // 3. Create Tree & Commit
     const { data: treeData } = await octokit.git.createTree({
       owner, repo, base_tree: latestCommitSha, tree: treeArray as any
     });
 
-    // 4. Create Commit
     const { data: commitData } = await octokit.git.createCommit({
-      owner, repo, message: `Auto-deploy project: ${title}`, tree: treeData.sha, parents: [latestCommitSha]
+      owner, repo, message: `Auto-deploy: ${title}`, tree: treeData.sha, parents: [latestCommitSha]
     });
 
-    // 5. Push (Update Reference)
     await octokit.git.updateRef({
       owner, repo, ref: `heads/${branch}`, sha: commitData.sha
     });
 
-    // 6. Save to Database
+    // 4. Save to Database (With correct Entry Point)
+    // The project_url will be "[slug]/[entry_point]"
+    // e.g. "my-app/admin/index.html"
+    const dbUrl = `${slug}/${entryPoint}`;
+
     await executeQuery({
       query: 'INSERT INTO projects (title, description, slug, type, project_url, tech_stack) VALUES (?, ?, ?, ?, ?, ?)',
-      values: [title, description, slug, 'static', slug, tech_stack],
+      values: [title, description, slug, 'static', dbUrl, tech_stack],
     });
 
     return NextResponse.json({ success: true });
