@@ -13,9 +13,9 @@ export async function POST(req: Request) {
     const description = formData.get('description') as string;
     const entryPoint = formData.get('entry_point') as string;
     
-    const files = formData.getAll('files') as File[];
-    // 👇 CHANGED: We now expect a simple Array of strings, not a Map
+    // Parse the file paths map
     const paths = JSON.parse(formData.get('paths') as string); 
+    const files = formData.getAll('files') as File[];
 
     if (!title || !slug || files.length === 0 || !entryPoint) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
@@ -25,15 +25,17 @@ export async function POST(req: Request) {
     const repo = process.env.GITHUB_REPO!;
     const branch = 'main'; 
 
+    // 1. Get Base Commit
     const { data: refData } = await octokit.git.getRef({ owner, repo, ref: `heads/${branch}` });
     const latestCommitSha = refData.object.sha;
 
+    // 2. Prepare GitHub Tree
     const treeArray = [];
     
-    // 👇 CHANGED: Loop using INDEX (i) to guarantee correct path matching
+    // Loop using INDEX to guarantee correct path matching
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const relativePath = paths[i]; // Guaranteed match by index
+      const relativePath = paths[i]; 
 
       const buffer = Buffer.from(await file.arrayBuffer());
       const content = buffer.toString('base64');
@@ -52,6 +54,7 @@ export async function POST(req: Request) {
       });
     }
 
+    // 3. Create Tree & Commit
     const { data: treeData } = await octokit.git.createTree({
       owner, repo, base_tree: latestCommitSha, tree: treeArray as any
     });
@@ -64,10 +67,20 @@ export async function POST(req: Request) {
       owner, repo, ref: `heads/${branch}`, sha: commitData.sha
     });
 
+    // 4. Save to Database (SMART UPDATE)
     const dbUrl = `${slug}/${entryPoint}`;
 
+    // 👇 THIS IS THE FIX: "ON DUPLICATE KEY UPDATE"
     await executeQuery({
-      query: 'INSERT INTO projects (title, description, slug, type, project_url, tech_stack) VALUES (?, ?, ?, ?, ?, ?)',
+      query: `
+        INSERT INTO projects (title, description, slug, type, project_url, tech_stack) 
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE 
+        title = VALUES(title),
+        description = VALUES(description),
+        project_url = VALUES(project_url),
+        tech_stack = VALUES(tech_stack)
+      `,
       values: [title, description, slug, 'static', dbUrl, tech_stack],
     });
 
