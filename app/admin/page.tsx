@@ -9,6 +9,13 @@ const ChevronRight = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 
 const CloseIcon = () => <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>;
 const PaperIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
 
+// --- DATE FORMATTER (YYYY-MM-DD -> DD-MM-YYYY) ---
+const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split('-');
+    return `${day}-${month}-${year}`;
+};
+
 // --- PROFESSIONAL RESUME TEMPLATE (HARVARD STYLE) ---
 const generateResumeHTML = (data: any) => `
 <!DOCTYPE html>
@@ -69,7 +76,7 @@ const generateResumeHTML = (data: any) => `
         <div class="entry">
             <div class="entry-header">
                 <span class="company">${data.expCompany}</span>
-                <span class="date">${data.expStart} — ${data.expEnd}</span>
+                <span class="date">${formatDate(data.expStart)} — ${formatDate(data.expEnd)}</span>
             </div>
             <div class="job-title">${data.expRole}</div>
             <div class="description">${data.expDesc}</div>
@@ -219,11 +226,9 @@ export default function AdminDashboard() {
   }
 
   return (
-    // ✨ CHANGED: flex-col on mobile, row on desktop
     <div className="min-h-screen bg-zinc-950 text-zinc-200 font-sans flex flex-col md:flex-row">
       
-      {/* --- ADMIN SIDEBAR (Responsive) --- */}
-      {/* ✨ CHANGED: w-full on mobile, fixed width on desktop. Flex-row for buttons on mobile. */}
+      {/* --- ADMIN SIDEBAR --- */}
       <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-900 p-4 md:p-6 flex flex-row md:flex-col gap-2 md:gap-4 shrink-0 overflow-x-auto md:overflow-visible items-center md:items-stretch">
         <h1 className="text-lg md:text-xl font-bold text-white md:mb-6 mr-4 md:mr-0 shrink-0">Admin OS</h1>
         
@@ -242,7 +247,6 @@ export default function AdminDashboard() {
       </div>
 
       {/* --- MAIN CONTENT AREA --- */}
-      {/* ✨ CHANGED: Reduced padding on mobile */}
       <div className="flex-1 p-4 md:p-12 overflow-y-auto">
         <div className="max-w-5xl mx-auto">
             
@@ -313,7 +317,7 @@ export default function AdminDashboard() {
             {/* --- VIEW: RESUME WIZARD --- */}
             {activeView === 'resume' && (
                 <div className="max-w-3xl mx-auto">
-                    {/* Steps Header (Responsive) */}
+                    {/* Steps Header */}
                     <div className="flex items-center justify-between mb-8 overflow-x-auto pb-2">
                         {[1, 2, 3, 4].map((step) => (
                             <div key={step} className={`flex items-center gap-2 shrink-0 ${resumeStep >= step ? 'text-emerald-400' : 'text-zinc-600'}`}>
@@ -344,7 +348,7 @@ export default function AdminDashboard() {
                             </div>
                         )}
 
-                        {/* STEP 2: EXPERIENCE */}
+                        {/* STEP 2: EXPERIENCE (UPDATED WITH DATE PICKERS) */}
                         {resumeStep === 2 && (
                             <div className="space-y-5 animate-in fade-in slide-in-from-right-4">
                                 <h2 className="text-xl font-bold text-white mb-4">Latest Experience</h2>
@@ -353,8 +357,28 @@ export default function AdminDashboard() {
                                     <input placeholder="Job Title" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white" value={resumeData.expRole} onChange={e => setResumeData({...resumeData, expRole: e.target.value})} />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1"><label className="text-[10px] text-zinc-500">Start Date</label><input type="month" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-300" value={resumeData.expStart} onChange={e => setResumeData({...resumeData, expStart: e.target.value})} /></div>
-                                    <div className="space-y-1"><label className="text-[10px] text-zinc-500">End Date</label><input type="month" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-300" value={resumeData.expEnd} onChange={e => setResumeData({...resumeData, expEnd: e.target.value})} /></div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-zinc-500 uppercase font-bold">Start Date</label>
+                                        <input 
+                                            type="date" 
+                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-300 focus:text-white transition-colors cursor-pointer"
+                                            style={{ colorScheme: "dark" }} // 🔥 Fix: Makes calendar icon white
+                                            onClick={(e) => e.currentTarget.showPicker()} // 🔥 Fix: Opens calendar on full click
+                                            value={resumeData.expStart} 
+                                            onChange={e => setResumeData({...resumeData, expStart: e.target.value})} 
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-zinc-500 uppercase font-bold">End Date</label>
+                                        <input 
+                                            type="date" 
+                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-300 focus:text-white transition-colors cursor-pointer"
+                                            style={{ colorScheme: "dark" }} 
+                                            onClick={(e) => e.currentTarget.showPicker()}
+                                            value={resumeData.expEnd} 
+                                            onChange={e => setResumeData({...resumeData, expEnd: e.target.value})} 
+                                        />
+                                    </div>
                                 </div>
                                 <textarea placeholder="Job Description (Bullet points recommended)" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white h-32" value={resumeData.expDesc} onChange={e => setResumeData({...resumeData, expDesc: e.target.value})} />
                                 
