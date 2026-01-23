@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // --- ICONS ---
 const Icons = {
@@ -12,6 +12,7 @@ const Icons = {
   Menu: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>,
   Close: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>,
   Refresh: () => <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>,
+  Spinner: () => <svg className="animate-spin h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>,
   Cpu: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>
 };
 
@@ -32,8 +33,13 @@ export default function PortfolioOS() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
+  
+  // New State for Caching & Loading
+  const [iframeKey, setIframeKey] = useState(0); // Forces re-render
+  const [isProjectReady, setIsProjectReady] = useState(false);
+  const [buildStatus, setBuildStatus] = useState(""); 
+  const retryInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // --- 1. CLOCK ---
   useEffect(() => {
     const timer = setInterval(() => {
         setCurrentTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
@@ -41,15 +47,12 @@ export default function PortfolioOS() {
     return () => clearInterval(timer);
   }, []);
 
-  // --- 2. AUTO-REFRESH & SYNC LOGIC ---
   useEffect(() => {
     fetchProjects(); 
     const interval = setInterval(() => fetchProjects(true), 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- 3. FIX: SELF-HEALING STATE ---
-  // If the active project disappears (deleted), reset to dashboard
   useEffect(() => {
     if (activeProject && projects.length > 0) {
         const stillExists = projects.find(p => p.id === activeProject.id);
@@ -72,15 +75,53 @@ export default function PortfolioOS() {
     }
   }
 
+  // --- SMART URL GENERATOR (Adds Timestamp to break Cache) ---
   const getProjectUrl = (project: Project) => {
-    if (project.type === 'external') return project.project_url;
-    if (project.project_url.includes('.html')) return `/projects/${project.project_url}`;
-    return `/projects/${project.project_url}/index.html`;
+    let base = "";
+    if (project.type === 'external') base = project.project_url;
+    else if (project.project_url.includes('.html')) base = `/projects/${project.project_url}`;
+    else base = `/projects/${project.project_url}/index.html`;
+
+    // ⚡ CACHE BUSTER: This forces the browser to load the NEW file
+    return `${base}?v=${iframeKey}`;
   };
 
   const handleProjectSelect = (proj: Project) => {
+    if (retryInterval.current) clearInterval(retryInterval.current);
+    
+    // Update the Key with current time -> Forces complete reload
+    setIframeKey(Date.now());
     setActiveProject(proj);
     setMobileMenuOpen(false);
+    
+    if (proj.type === 'static') {
+        setIsProjectReady(false);
+        setBuildStatus("Checking Cloud Status...");
+        checkProjectAvailability(getProjectUrl(proj)); // Check URL with timestamp
+    } else {
+        setIsProjectReady(true);
+    }
+  };
+
+  const checkProjectAvailability = async (url: string) => {
+      try {
+          const res = await fetch(url, { method: 'HEAD' });
+          if (res.ok) {
+              setIsProjectReady(true);
+              setBuildStatus("");
+              if (retryInterval.current) clearInterval(retryInterval.current);
+          } else {
+              setBuildStatus("Building... (This takes ~60s)");
+              if (!retryInterval.current) {
+                  retryInterval.current = setInterval(() => checkProjectAvailability(url), 2000);
+              }
+          }
+      } catch (e) {
+          setBuildStatus("Initializing...");
+          if (!retryInterval.current) {
+             retryInterval.current = setInterval(() => checkProjectAvailability(url), 2000);
+          }
+      }
   };
 
   return (
@@ -159,29 +200,51 @@ export default function PortfolioOS() {
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-bold text-white tracking-wide truncate">{activeProject.title}</span>
                 <span className="text-[10px] text-indigo-400 font-mono flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                  <span className="truncate">Active Process</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isProjectReady ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></span>
+                  <span className="truncate">{isProjectReady ? 'Running' : buildStatus}</span>
                 </span>
               </div>
-              <a href={getProjectUrl(activeProject)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[10px] md:text-xs font-bold bg-white text-black px-3 py-2 rounded-lg hover:bg-zinc-200 transition shrink-0">
-                <span className="hidden md:inline">Open Fullscreen</span> <Icons.External />
+              <a 
+                href={isProjectReady ? getProjectUrl(activeProject) : "#"} 
+                target={isProjectReady ? "_blank" : "_self"}
+                rel="noreferrer" 
+                className={`flex items-center gap-2 text-[10px] md:text-xs font-bold px-3 py-2 rounded-lg transition shrink-0 ${isProjectReady ? 'bg-white text-black hover:bg-zinc-200 cursor-pointer' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
+                onClick={(e) => !isProjectReady && e.preventDefault()}
+              >
+                <span className="hidden md:inline">{isProjectReady ? "Open Fullscreen" : "Wait..."}</span> <Icons.External />
               </a>
             </div>
 
-            <div className="flex-1 relative bg-white w-full h-full">
-               <iframe
-                key={activeProject.id}
-                src={getProjectUrl(activeProject)}
-                className="w-full h-full border-none"
-                title="Project Viewer"
-              />
+            <div className="flex-1 relative bg-white w-full h-full flex flex-col items-center justify-center">
+                
+                {/* 1. LOADING SCREEN */}
+                {!isProjectReady && (
+                   <div className="absolute inset-0 bg-zinc-950 flex flex-col items-center justify-center z-50">
+                       <div className="p-8 rounded-2xl bg-zinc-900 border border-zinc-800 text-center shadow-2xl max-w-sm">
+                           <div className="mb-6 flex justify-center"><Icons.Spinner /></div>
+                           <h3 className="text-white font-bold text-xl mb-2">Deploying Update</h3>
+                           <p className="text-zinc-400 text-sm mb-4">Syncing latest version from cloud...</p>
+                           <div className="text-xs text-indigo-400 font-mono bg-indigo-950/30 py-2 rounded animate-pulse">
+                               {buildStatus}
+                           </div>
+                       </div>
+                   </div>
+                )}
+               
+               {/* 2. IFRAME (Only loads when ready + has TIMESTAMP to break cache) */}
+               {isProjectReady && (
+                   <iframe
+                    key={`${activeProject.id}-${iframeKey}`} // 👈 Forces complete destroy/rebuild
+                    src={getProjectUrl(activeProject)} // 👈 URL includes ?v=timestamp
+                    className="w-full h-full border-none"
+                    title="Project Viewer"
+                  />
+               )}
             </div>
           </>
         ) : (
-          /* --- SYSTEM DASHBOARD (AMAZING UI) --- */
+          /* SYSTEM DASHBOARD (Unchanged) */
           <div className="flex-1 flex flex-col p-6 md:p-12 overflow-y-auto bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
-            
-            {/* Header */}
             <div className="flex justify-between items-end mb-12">
                 <div>
                     <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-2">SYSTEM <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">ONLINE</span></h1>
@@ -192,11 +255,7 @@ export default function PortfolioOS() {
                     <div className="text-xs text-zinc-500 uppercase tracking-widest">Local Time</div>
                 </div>
             </div>
-
-            {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                
-                {/* Stat Card 1 */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
                     <div className="flex items-start justify-between mb-4">
                         <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400"><Icons.Cpu /></div>
@@ -205,8 +264,6 @@ export default function PortfolioOS() {
                     <div className="text-2xl font-bold text-white">Nominal</div>
                     <div className="text-xs text-zinc-500 mt-1">System running efficiently</div>
                 </div>
-
-                {/* Stat Card 2 */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
                     <div className="flex items-start justify-between mb-4">
                         <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400"><Icons.Folder /></div>
@@ -215,25 +272,7 @@ export default function PortfolioOS() {
                     <div className="text-2xl font-bold text-white">{projects.length} Active</div>
                     <div className="text-xs text-zinc-500 mt-1">Projects deployed</div>
                 </div>
-
-                 {/* Activity Graph Mockup */}
-                 <div className="col-span-1 md:col-span-2 bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex flex-col justify-between">
-                     <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-4">Deployment Activity</div>
-                     <div className="flex gap-1 h-12 items-end">
-                         {[...Array(20)].map((_, i) => (
-                             <div key={i} className="flex-1 bg-indigo-500/20 rounded-sm hover:bg-indigo-500 transition-all duration-300" style={{ height: `${Math.random() * 100}%`}}></div>
-                         ))}
-                     </div>
-                 </div>
             </div>
-
-            {/* Footer Message */}
-            <div className="mt-auto pt-12 text-center">
-                 <div className="inline-block px-4 py-2 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">
-                    Ready for input. Select a module from the sidebar.
-                 </div>
-            </div>
-
           </div>
         )}
       </div>

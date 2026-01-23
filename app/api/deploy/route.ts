@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const description = formData.get('description') as string;
     const entryPoint = formData.get('entry_point') as string;
     
-    // Parse the file paths map
+    // Parse paths and files
     const paths = JSON.parse(formData.get('paths') as string); 
     const files = formData.getAll('files') as File[];
 
@@ -25,14 +25,11 @@ export async function POST(req: Request) {
     const repo = process.env.GITHUB_REPO!;
     const branch = 'main'; 
 
-    // 1. Get Base Commit
+    // 1. GitHub Operations
     const { data: refData } = await octokit.git.getRef({ owner, repo, ref: `heads/${branch}` });
     const latestCommitSha = refData.object.sha;
 
-    // 2. Prepare GitHub Tree
     const treeArray = [];
-    
-    // Loop using INDEX to guarantee correct path matching
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const relativePath = paths[i]; 
@@ -54,7 +51,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. Create Tree & Commit
     const { data: treeData } = await octokit.git.createTree({
       owner, repo, base_tree: latestCommitSha, tree: treeArray as any
     });
@@ -67,10 +63,9 @@ export async function POST(req: Request) {
       owner, repo, ref: `heads/${branch}`, sha: commitData.sha
     });
 
-    // 4. Save to Database (SMART UPDATE)
+    // 2. Database Operation (THE FIX IS HERE 👇)
     const dbUrl = `${slug}/${entryPoint}`;
 
-    // 👇 THIS IS THE FIX: "ON DUPLICATE KEY UPDATE"
     await executeQuery({
       query: `
         INSERT INTO projects (title, description, slug, type, project_url, tech_stack) 
