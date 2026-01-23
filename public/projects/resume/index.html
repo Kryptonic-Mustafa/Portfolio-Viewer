@@ -4,47 +4,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mustafa Aliasgar Chhabrawala - Resume</title>
+    <title>Mustafa Chhabrawala - Professional Resume</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #f4f4f5; color: #333; }
-        .container { max-width: 800px; margin: 40px auto; background: white; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h1 { margin: 0; color: #111; font-size: 2.5rem; }
-        .role { color: #6366f1; font-weight: bold; font-size: 1.2rem; margin-bottom: 20px; display: block; }
-        .section { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-        .section-title { font-size: 0.9rem; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; }
-        .exp-item { margin-bottom: 20px; }
-        .exp-title { font-weight: bold; font-size: 1.1rem; }
-        .exp-meta { font-size: 0.9rem; color: #666; margin-bottom: 5px; }
-        .skills { display: flex; flex-wrap: wrap; gap: 10px; }
-        .skill-tag { background: #eef2ff; color: #4f46e5; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
-        .contact { margin-top: 40px; font-size: 0.9rem; color: #666; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background: #525659; display: flex; justify-content: center; }
+        .page { width: 21cm; min-height: 29.7cm; background: white; padding: 2cm; box-shadow: 0 0 20px rgba(0,0,0,0.5); margin: 20px 0; }
+        
+        /* Header */
+        header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 25px; }
+        h1 { margin: 0; font-size: 32px; text-transform: uppercase; letter-spacing: 1px; color: #111; }
+        .subtitle { font-size: 16px; color: #555; margin-top: 5px; font-weight: 500; }
+        .contact-info { margin-top: 10px; font-size: 14px; color: #444; display: flex; gap: 15px; flex-wrap: wrap; }
+        .contact-info span { display: flex; align-items: center; gap: 5px; }
+
+        /* Sections */
+        .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; color: #111; border-bottom: 1px solid #ddd; margin-bottom: 15px; padding-bottom: 5px; letter-spacing: 0.5px; }
+        .entry { margin-bottom: 20px; }
+        .entry-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+        .job-title { font-weight: 700; font-size: 16px; color: #000; }
+        .company { font-weight: 600; font-size: 15px; color: #333; }
+        .date { font-size: 14px; color: #666; font-style: italic; }
+        .description { font-size: 14px; color: #444; line-height: 1.5; margin-top: 5px; white-space: pre-line; }
+        
+        /* Skills */
+        .skills-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .skill-pill { background: #f3f4f6; padding: 4px 10px; border-radius: 4px; font-size: 13px; font-weight: 500; color: #374151; border: 1px solid #e5e7eb; }
+
+        @media print {
+            body { background: white; }
+            .page { box-shadow: none; margin: 0; padding: 0; width: 100%; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Mustafa Aliasgar Chhabrawala</h1>
-        <span class="role">Software Engineer</span>
-        <p>Test!</p>
-
-        <div class="section">
-            <div class="section-title">Experience</div>
-            <div class="exp-item">
-                <div class="exp-title">Full Stack Developer</div>
-                <div class="exp-meta">Elite Infosoft | 12-04-2025 to 12-10-2025</div>
-                <p>Software Engineer and Qa</p>
+    <div class="page">
+        <header>
+            <h1>Mustafa Chhabrawala</h1>
+            <div class="subtitle">Full Stack Developer</div>
+            <div class="contact-info">
+                <span>📍 Pune, India</span>
+                <span>📧 mustafa@example.com</span>
+                <span>📱 +91 9975203660</span>
             </div>
+        </header>
+
+        <div class="section-title">Professional Summary</div>
+        <div class="entry description" style="margin-bottom: 30px;">
+            Passionate developer with expertise in building scalable web applications and interactive experiences.
         </div>
 
-        <div class="section">
-            <div class="section-title">Skills</div>
-            <div class="skills">
-                <span class="skill-tag">PHP</span><span class="skill-tag">Dot Net</span><span class="skill-tag">HTML</span><span class="skill-tag">CSS</span><span class="skill-tag">Javascript</span><span class="skill-tag">Jquery</span><span class="skill-tag"></span>
+        <div class="section-title">Experience</div>
+        <div class="entry">
+            <div class="entry-header">
+                <span class="company"></span>
+                <span class="date">2026-07 — 2026-10</span>
             </div>
+            <div class="job-title"></div>
+            <div class="description">TesT!</div>
         </div>
 
-        <div class="contact">
-            macstars786@gmail.com | Pune, Kondhwa
+        <div class="section-title">Technical Skills</div>
+        <div class="skills-grid">
+            <span class="skill-pill">React</span><span class="skill-pill">Next.js</span><span class="skill-pill">TypeScript</span><span class="skill-pill">Node.js</span><span class="skill-pill">PHP</span><span class="skill-pill">HTML</span><span class="skill-pill">CSS</span><span class="skill-pill">Vanilla JS</span><span class="skill-pill">Dot NET</span>
         </div>
+        
+        <br>
+        <div class="section-title">Education</div>
+        <div class="entry">
+            <div class="entry-header">
+                <span class="company">Abeda Inamdar Senior College</span>
+                <span class="date">2024</span>
+            </div>
+            <div class="job-title">BBA(CA)</div>
+        </div>
+
     </div>
 </body>
 </html>
