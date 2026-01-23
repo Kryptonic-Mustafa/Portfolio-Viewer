@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import "./globals.css"; // Ensure you have globals.css, if not remove this line
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+// 1. IMPORT THIS 👇
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Portfolio OS",
@@ -13,7 +19,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-neutral-950 text-white antialiased">{children}</body>
+      <body className={inter.className}>
+        {children}
+        {/* 2. ADD THIS TAG HERE 👇 */}
+        <SpeedInsights />
+      </body>
     </html>
   );
 }
