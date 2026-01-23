@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-// --- ICONS ---
+// --- ICONS (Keep existing icons) ---
 const Icons = {
   Home: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
   External: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>,
@@ -27,7 +27,7 @@ export default function PortfolioOS() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // NEW: Mobile State
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -41,11 +41,23 @@ export default function PortfolioOS() {
     fetchProjects();
   }, []);
 
+  // --- 👇 THIS IS THE FIXED FUNCTION 👇 ---
   const getProjectUrl = (project: Project) => {
-    return project.type === 'static' ? `/projects/${project.project_url}/index.html` : project.project_url;
-  };
+    if (project.type === 'external') {
+        return project.project_url;
+    }
 
-  // Close mobile menu when a project is selected
+    // Smart Check: Does the URL already have ".html"?
+    // If YES: It's a new "Smart Deploy" project -> Use as is.
+    // If NO: It's an old "Folder" project -> Add /index.html
+    if (project.project_url.includes('.html')) {
+        return `/projects/${project.project_url}`;
+    } else {
+        return `/projects/${project.project_url}/index.html`;
+    }
+  };
+  // ----------------------------------------
+
   const handleProjectSelect = (proj: Project) => {
     setActiveProject(proj);
     setMobileMenuOpen(false);
@@ -54,7 +66,7 @@ export default function PortfolioOS() {
   return (
     <div className="flex h-screen bg-[#050505] text-zinc-100 font-sans overflow-hidden selection:bg-indigo-500/30 relative">
       
-      {/* --- MOBILE HEADER (Visible only on small screens) --- */}
+      {/* --- MOBILE HEADER --- */}
       <div className="md:hidden absolute top-0 left-0 right-0 h-16 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 z-40">
         <div className="font-bold text-white tracking-wide">Developer OS</div>
         <button onClick={() => setMobileMenuOpen(true)} className="p-2 text-zinc-300">
@@ -62,7 +74,7 @@ export default function PortfolioOS() {
         </button>
       </div>
 
-      {/* --- MOBILE OVERLAY BACKDROP --- */}
+      {/* --- MOBILE OVERLAY --- */}
       {mobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
@@ -71,7 +83,6 @@ export default function PortfolioOS() {
       )}
 
       {/* --- SIDEBAR --- */}
-      {/* Logic: Fixed on mobile (slide-in), Static on desktop */}
       <div className={`
         fixed inset-y-0 left-0 z-50 w-72 bg-[#0a0a0a]/95 backdrop-blur-2xl border-r border-white/5 shadow-2xl transition-transform duration-300 ease-in-out
         md:relative md:translate-x-0 md:w-80 md:bg-[#0a0a0a]/80
@@ -89,7 +100,6 @@ export default function PortfolioOS() {
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">v3.0</p>
             </div>
           </div>
-          {/* Close Button (Mobile Only) */}
           <button onClick={() => setMobileMenuOpen(false)} className="md:hidden text-zinc-400">
             <Icons.Close />
           </button>
