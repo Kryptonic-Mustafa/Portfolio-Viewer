@@ -4,12 +4,10 @@ import Swal from 'sweetalert2';
 
 // --- ICONS ---
 const TrashIcon = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
-const CloudIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>;
-const LinkIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>;
-const PaperIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
 const ExternalLinkIcon = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>;
 const ChevronRight = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>;
 const CloseIcon = () => <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>;
+const PaperIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
 
 // --- PROFESSIONAL RESUME TEMPLATE (HARVARD STYLE) ---
 const generateResumeHTML = (data: any) => `
@@ -114,7 +112,7 @@ export default function AdminDashboard() {
   const [resumeStep, setResumeStep] = useState(1);
   const [newSkill, setNewSkill] = useState("");
   const [resumeData, setResumeData] = useState({
-      name: "Mustafa Chhabrawala", // Prefilled as requested
+      name: "Mustafa Chhabrawala",
       role: "Full Stack Developer",
       email: "mustafa@example.com",
       phone: "+91 98765 43210",
@@ -128,7 +126,7 @@ export default function AdminDashboard() {
       eduSchool: "",
       eduDegree: "",
       eduYear: "",
-      skills: ["React", "Next.js", "TypeScript", "Node.js"] as string[] // Default skills
+      skills: ["React", "Next.js", "TypeScript", "Node.js"] as string[] 
   });
 
   useEffect(() => { fetchProjects(); }, []);
@@ -147,7 +145,6 @@ export default function AdminDashboard() {
     fetchProjects();
   }
 
-  // --- PROJECT DEPLOY HANDLER ---
   async function handleAutoDeploy(e: React.FormEvent) {
     e.preventDefault();
     if (!deployData.title || !deployData.slug || !selectedFiles || !entryPoint) {
@@ -156,7 +153,6 @@ export default function AdminDashboard() {
     await performDeploy(deployData.title, deployData.slug, deployData.tech_stack, deployData.description, entryPoint, Array.from(selectedFiles));
   }
 
-  // --- RESUME DEPLOY HANDLER ---
   async function handleResumeDeploy() {
       if (!resumeData.name || !resumeData.role) return Swal.fire({icon: 'warning', text: 'Name & Role required'});
 
@@ -194,7 +190,7 @@ export default function AdminDashboard() {
     try {
         const res = await fetch("/api/deploy", { method: "POST", body: formData });
         if (res.ok) {
-            Swal.fire({ icon: 'success', title: 'Success!', text: 'Your Resume is now Live!', background: '#18181b', color: '#fff' });
+            Swal.fire({ icon: 'success', title: 'Success!', text: 'Your Project is now Live!', background: '#18181b', color: '#fff' });
             fetchProjects();
         } else { throw new Error("Deploy Failed"); }
     } catch (error: any) {
@@ -202,7 +198,6 @@ export default function AdminDashboard() {
     } finally { setDeploying(false); }
   }
 
-  // --- SKILL BADGE HANDLERS ---
   const addSkill = (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && newSkill.trim()) {
           e.preventDefault();
@@ -224,34 +219,38 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-200 font-sans flex">
+    // ✨ CHANGED: flex-col on mobile, row on desktop
+    <div className="min-h-screen bg-zinc-950 text-zinc-200 font-sans flex flex-col md:flex-row">
       
-      {/* --- ADMIN SIDEBAR --- */}
-      <div className="w-64 border-r border-zinc-800 bg-zinc-900 p-6 flex flex-col gap-2 shrink-0">
-        <h1 className="text-xl font-bold text-white mb-6">Admin OS</h1>
-        <button onClick={() => setActiveView('projects')} className={`text-left px-4 py-3 rounded-lg text-sm font-bold transition ${activeView === 'projects' ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:bg-zinc-800'}`}>
-            Projects Manager
+      {/* --- ADMIN SIDEBAR (Responsive) --- */}
+      {/* ✨ CHANGED: w-full on mobile, fixed width on desktop. Flex-row for buttons on mobile. */}
+      <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-900 p-4 md:p-6 flex flex-row md:flex-col gap-2 md:gap-4 shrink-0 overflow-x-auto md:overflow-visible items-center md:items-stretch">
+        <h1 className="text-lg md:text-xl font-bold text-white md:mb-6 mr-4 md:mr-0 shrink-0">Admin OS</h1>
+        
+        <button onClick={() => setActiveView('projects')} className={`flex-1 md:flex-none text-left px-3 py-2 md:px-4 md:py-3 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeView === 'projects' ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:bg-zinc-800'}`}>
+            Projects
         </button>
-        <button onClick={() => setActiveView('resume')} className={`text-left px-4 py-3 rounded-lg text-sm font-bold transition ${activeView === 'resume' ? 'bg-emerald-600 text-white' : 'text-zinc-500 hover:bg-zinc-800'}`}>
-            Resume Builder
+        <button onClick={() => setActiveView('resume')} className={`flex-1 md:flex-none text-left px-3 py-2 md:px-4 md:py-3 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeView === 'resume' ? 'bg-emerald-600 text-white' : 'text-zinc-500 hover:bg-zinc-800'}`}>
+            Resume
         </button>
         
-        <div className="mt-auto pt-6 border-t border-zinc-800">
-             <a href="/" target="_blank" className="flex items-center gap-2 text-zinc-400 hover:text-white text-sm font-bold px-2 py-2 rounded transition hover:bg-zinc-800">
-                <ExternalLinkIcon /> Go to Live Site
+        <div className="md:mt-auto ml-auto md:ml-0 md:pt-6 md:border-t border-zinc-800">
+             <a href="/" target="_blank" className="flex items-center gap-2 text-zinc-400 hover:text-white text-xs md:text-sm font-bold px-2 py-2 rounded transition hover:bg-zinc-800">
+                <ExternalLinkIcon /> <span className="hidden md:inline">Go to Live Site</span><span className="md:hidden">Live</span>
              </a>
         </div>
       </div>
 
       {/* --- MAIN CONTENT AREA --- */}
-      <div className="flex-1 p-8 md:p-12 overflow-y-auto">
+      {/* ✨ CHANGED: Reduced padding on mobile */}
+      <div className="flex-1 p-4 md:p-12 overflow-y-auto">
         <div className="max-w-5xl mx-auto">
             
-            {/* --- VIEW: PROJECTS (Unchanged logic, polished UI) --- */}
+            {/* --- VIEW: PROJECTS --- */}
             {activeView === 'projects' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     <div className="lg:col-span-1">
-                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl sticky top-8">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-6 shadow-xl sticky top-8">
                             <div className="flex bg-zinc-950 p-1 rounded-lg mb-6 border border-zinc-800">
                                 <button onClick={() => setActiveTab('upload')} className={`flex-1 py-2 text-xs font-bold rounded-md transition ${activeTab === 'upload' ? 'bg-indigo-600 text-white' : 'text-zinc-500'}`}>Upload</button>
                                 <button onClick={() => setActiveTab('link')} className={`flex-1 py-2 text-xs font-bold rounded-md transition ${activeTab === 'link' ? 'bg-emerald-600 text-white' : 'text-zinc-500'}`}>Link</button>
@@ -260,7 +259,7 @@ export default function AdminDashboard() {
                             {activeTab === 'upload' ? (
                                 <form onSubmit={handleAutoDeploy} className="space-y-3">
                                     <input type="text" placeholder="Title" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm" value={deployData.title} onChange={(e) => setDeployData({...deployData, title: e.target.value})} />
-                                    <input type="text" placeholder="Slug (Folder Name)" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm" value={deployData.slug} onChange={(e) => setDeployData({...deployData, slug: e.target.value})} />
+                                    <input type="text" placeholder="Slug (Folder)" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm" value={deployData.slug} onChange={(e) => setDeployData({...deployData, slug: e.target.value})} />
                                     <input type="text" placeholder="Tech Stack" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm" value={deployData.tech_stack} onChange={(e) => setDeployData({...deployData, tech_stack: e.target.value})} />
                                     
                                     <div className="border-2 border-dashed border-zinc-700 rounded-lg p-4 text-center cursor-pointer bg-zinc-950/50 hover:border-indigo-500 transition" onClick={() => fileInputRef.current?.click()}>
@@ -277,7 +276,7 @@ export default function AdminDashboard() {
                                             }} 
                                         />
                                     </div>
-                                    {entryPoint && <div className="text-[10px] text-indigo-400 font-mono bg-indigo-900/20 p-2 rounded">Start: {entryPoint}</div>}
+                                    {entryPoint && <div className="text-[10px] text-indigo-400 font-mono bg-indigo-900/20 p-2 rounded truncate">Start: {entryPoint}</div>}
 
                                     <button type="submit" disabled={deploying} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg">
                                         {deploying ? "Deploying..." : "🚀 Launch"}
@@ -294,16 +293,16 @@ export default function AdminDashboard() {
                             )}
                         </div>
                     </div>
-                    <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 overflow-hidden">
+                    <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-6 overflow-hidden">
                          <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-4">Live Registry</h2>
                          <div className="space-y-2">
                             {projects.map((proj:any) => (
                                 <div key={proj.id} className="flex justify-between items-center bg-zinc-950 p-3 rounded-lg border border-zinc-800 hover:border-zinc-700 transition">
-                                    <div>
-                                        <div className="font-bold text-white text-sm">{proj.title}</div>
-                                        <div className="text-[10px] text-zinc-600 font-mono">/{proj.slug}</div>
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-white text-sm truncate">{proj.title}</div>
+                                        <div className="text-[10px] text-zinc-600 font-mono truncate">/{proj.slug}</div>
                                     </div>
-                                    <button onClick={() => handleDelete(proj.id)} className="text-zinc-500 hover:text-red-400 p-2"><TrashIcon/></button>
+                                    <button onClick={() => handleDelete(proj.id)} className="text-zinc-500 hover:text-red-400 p-2 shrink-0"><TrashIcon/></button>
                                 </div>
                             ))}
                          </div>
@@ -314,10 +313,10 @@ export default function AdminDashboard() {
             {/* --- VIEW: RESUME WIZARD --- */}
             {activeView === 'resume' && (
                 <div className="max-w-3xl mx-auto">
-                    {/* Steps Header */}
-                    <div className="flex items-center justify-between mb-8">
+                    {/* Steps Header (Responsive) */}
+                    <div className="flex items-center justify-between mb-8 overflow-x-auto pb-2">
                         {[1, 2, 3, 4].map((step) => (
-                            <div key={step} className={`flex items-center gap-2 ${resumeStep >= step ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                            <div key={step} className={`flex items-center gap-2 shrink-0 ${resumeStep >= step ? 'text-emerald-400' : 'text-zinc-600'}`}>
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border ${resumeStep >= step ? 'bg-emerald-500/20 border-emerald-500' : 'bg-zinc-900 border-zinc-700'}`}>
                                     {step}
                                 </div>
@@ -326,18 +325,18 @@ export default function AdminDashboard() {
                         ))}
                     </div>
 
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-8 shadow-xl">
                         
                         {/* STEP 1: PERSONAL DETAILS */}
                         {resumeStep === 1 && (
                             <div className="space-y-5 animate-in fade-in slide-in-from-right-4">
                                 <h2 className="text-xl font-bold text-white mb-4">Personal Details</h2>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1"><label className="text-[10px] uppercase font-bold text-zinc-500">Full Name</label><input className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white" value={resumeData.name} onChange={e => setResumeData({...resumeData, name: e.target.value})} /></div>
                                     <div className="space-y-1"><label className="text-[10px] uppercase font-bold text-zinc-500">Role Title</label><input className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white" value={resumeData.role} onChange={e => setResumeData({...resumeData, role: e.target.value})} /></div>
                                 </div>
                                 <div className="space-y-1"><label className="text-[10px] uppercase font-bold text-zinc-500">Professional Summary</label><textarea className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white h-24" value={resumeData.bio} onChange={e => setResumeData({...resumeData, bio: e.target.value})} /></div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1"><label className="text-[10px] uppercase font-bold text-zinc-500">Email</label><input className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white" value={resumeData.email} onChange={e => setResumeData({...resumeData, email: e.target.value})} /></div>
                                     <div className="space-y-1"><label className="text-[10px] uppercase font-bold text-zinc-500">Phone</label><input className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white" value={resumeData.phone} onChange={e => setResumeData({...resumeData, phone: e.target.value})} /></div>
                                 </div>
@@ -349,11 +348,11 @@ export default function AdminDashboard() {
                         {resumeStep === 2 && (
                             <div className="space-y-5 animate-in fade-in slide-in-from-right-4">
                                 <h2 className="text-xl font-bold text-white mb-4">Latest Experience</h2>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <input placeholder="Company Name" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white" value={resumeData.expCompany} onChange={e => setResumeData({...resumeData, expCompany: e.target.value})} />
                                     <input placeholder="Job Title" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white" value={resumeData.expRole} onChange={e => setResumeData({...resumeData, expRole: e.target.value})} />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1"><label className="text-[10px] text-zinc-500">Start Date</label><input type="month" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-300" value={resumeData.expStart} onChange={e => setResumeData({...resumeData, expStart: e.target.value})} /></div>
                                     <div className="space-y-1"><label className="text-[10px] text-zinc-500">End Date</label><input type="month" className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-300" value={resumeData.expEnd} onChange={e => setResumeData({...resumeData, expEnd: e.target.value})} /></div>
                                 </div>
@@ -361,7 +360,7 @@ export default function AdminDashboard() {
                                 
                                 <div className="pt-4 border-t border-zinc-800">
                                     <h3 className="text-sm font-bold text-zinc-400 mb-3">Education</h3>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                         <input placeholder="University" className="col-span-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-white" value={resumeData.eduSchool} onChange={e => setResumeData({...resumeData, eduSchool: e.target.value})} />
                                         <input placeholder="Degree" className="col-span-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-white" value={resumeData.eduDegree} onChange={e => setResumeData({...resumeData, eduDegree: e.target.value})} />
                                         <input placeholder="Year" className="col-span-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-white" value={resumeData.eduYear} onChange={e => setResumeData({...resumeData, eduYear: e.target.value})} />
